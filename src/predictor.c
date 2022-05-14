@@ -44,10 +44,10 @@ int verbose;
 //int gbht_entries = 1 << 12; // 2 ^{12}
 //int cbht_entries = 1 << 12; // 2 ^{12}
 
-int lht_entries = 1 << 16;
-int lbht_entries = 1 << 16;
-int gbht_entries = 1 << 16;
-int cbht_entries = 1 << 16;
+int lht_entries = 1 << 10;
+int lbht_entries = 1 << 13;
+int gbht_entries = 1 << 13;
+int cbht_entries = 1 << 13;
 
 //------------------------------------//
 //      Predictor Data Structures     //
