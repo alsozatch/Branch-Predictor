@@ -54,7 +54,7 @@ int cbht_entries = 1 << 13;
 
 
 // perceptron
-int pc_entries = 1 << 7;
+int pc_entries = 127;
 uint16_t weight_entries = 29; // 1 bit reserved for bias, so it is 1 more than number of global history bits used
 
 
@@ -77,7 +77,7 @@ uint8_t *cbht; // choice prediction BHT
 uint64_t ghistory_tournament; // global history
 
 // perceptron
-int8_t ptable[1 << 7][29]; // 1 bias + the rest ghistory bits for columns
+int8_t ptable[127][29]; // 1 bias + the rest ghistory bits for columns
 uint64_t ghistory_perceptron;
 int theta;
 
@@ -100,19 +100,24 @@ void init_perceptron() {
     ghistory_perceptron = 0;
 }
 
+uint32_t hash_pc(uint32_t pc) {
+    return pc % pc_entries;
+}
+
 int perceptron_calculate_y(uint32_t pc) {
-    uint32_t pc_lower_bits = pc & (pc_entries - 1);
+    //uint32_t pc_lower_bits = pc & (pc_entries - 1);
+    uint32_t pc_index = hash_pc(pc);
     
     int y = 0;
-    y += ptable[pc_lower_bits][0];
+    y += ptable[pc_index][0];
     
     int i;
     for (i = 1; i < weight_entries; i++) {
         if (ghistory_perceptron & (1 << (i-1)) == 0) {
-            y -= ptable[pc_lower_bits][i];
+            y -= ptable[pc_index][i];
         }
         else {
-            y += ptable[pc_lower_bits][i];
+            y += ptable[pc_index][i];
         }
     }
     
@@ -125,19 +130,21 @@ uint8_t perceptron_predict(uint32_t pc) {
 }
 
 void train_perceptron(uint32_t pc, uint8_t outcome) {
-    uint32_t pc_lower_bits = pc & (pc_entries - 1);
+    //uint32_t pc_lower_bits = pc & (pc_entries - 1);
+    uint32_t pc_index = hash_pc(pc);
     int y = perceptron_calculate_y(pc);
     int8_t t = (outcome == TAKEN) ? 1 : -1;
+    int8_t sign_y = (y >= 0) ? 1 : -1;
     
     int i;
-    if (abs(y) <= theta) {
-        ptable[pc_lower_bits][0] += t;
+    if ((sign_y != t) || (abs(y) <= theta)) {
+        ptable[pc_index][0] += t;
         for (i = 1; i < weight_entries; i++) {
             if (ghistory_perceptron & (1 << (i-1)) == 0) {
-                ptable[pc_lower_bits][i] -= t;
+                ptable[pc_index][i] -= t;
             }
             else {
-                ptable[pc_lower_bits][i] += t;
+                ptable[pc_index][i] += t;
             }
         }
     }
