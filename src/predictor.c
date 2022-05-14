@@ -29,6 +29,9 @@ int ghistoryBits = 14; // Number of bits used for Global History
 int bpType;       // Branch Prediction Type
 int verbose;
 
+
+// tournament
+
 //int lhtBits = 10; // number of bits of pc used to index the local history
 //int lbhtBits = 10; // number of local history bits used to get prediction
 //int gbhtBits = 12;
@@ -49,6 +52,12 @@ int lbht_entries = 1 << 13;
 int gbht_entries = 1 << 13;
 int cbht_entries = 1 << 13;
 
+
+// perceptron
+int pc_entries = 1 << 7;
+uint16_t weight_entries = 29; // 1 bit reserved for bias, so it is 1 more than number of global history bits used
+
+
 //------------------------------------//
 //      Predictor Data Structures     //
 //------------------------------------//
@@ -67,11 +76,73 @@ uint8_t *gbht; // global prediction BHT
 uint8_t *cbht; // choice prediction BHT
 uint64_t ghistory_tournament; // global history
 
+// perceptron
+int8_t ptable[1 << 7][29]; // 1 bias + the rest ghistory bits for columns
+uint64_t ghistory_perceptron;
+int theta;
 
 
 //------------------------------------//
 //        Predictor Functions         //
 //------------------------------------//
+
+// perceptron functions
+void init_perceptron() {
+    //ptable = (float*)malloc(pc_entries * ghistory_bits_perceptron * sizeof(float));
+    int i, j;
+    for (i = 0; i < pc_entries; i++) {
+        for (j = 0; j < weight_entries; j++) {
+            ptable[i][j] = 0;
+        }
+    }
+    
+    theta = (int)(1.93 * (weight_entries - 1) + 14);
+    ghistory_perceptron = 0;
+}
+
+int perceptron_calculate_y(uint32_t pc) {
+    uint32_t pc_lower_bits = pc & (pc_entries - 1);
+    
+    int y = 0;
+    y += ptable[pc_lower_bits][0];
+    
+    int i;
+    for (i = 1; i < weight_entries; i++) {
+        if (ghistory_perceptron & (1 << (i-1)) == 0) {
+            y -= ptable[pc_lower_bits][i];
+        }
+        else {
+            y += ptable[pc_lower_bits][i];
+        }
+    }
+    
+    return y;
+}
+
+uint8_t perceptron_predict(uint32_t pc) {
+    int y = perceptron_calculate_y(pc);
+    return (y >= 0) ? TAKEN : NOTTAKEN;
+}
+
+void train_perceptron(uint32_t pc, uint8_t outcome) {
+    uint32_t pc_lower_bits = pc & (pc_entries - 1);
+    int y = perceptron_calculate_y(pc);
+    int8_t t = (outcome == TAKEN) ? 1 : -1;
+    
+    int i;
+    if (abs(y) <= theta) {
+        ptable[pc_lower_bits][0] += t;
+        for (i = 1; i < weight_entries; i++) {
+            if (ghistory_perceptron & (1 << (i-1)) == 0) {
+                ptable[pc_lower_bits][i] -= t;
+            }
+            else {
+                ptable[pc_lower_bits][i] += t;
+            }
+        }
+    }
+    
+}
 
 //tournament functions
 void init_tournament() {
@@ -361,6 +432,7 @@ void init_predictor()
             init_tournament();
             break;
     case CUSTOM:
+            init_perceptron();
             break;
     default:
             break;
@@ -384,6 +456,7 @@ uint8_t make_prediction(uint32_t pc)
     case TOURNAMENT:
             return tournament_predict(pc);
     case CUSTOM:
+            return perceptron_predict(pc);
     default:
             break;
   }
@@ -406,6 +479,7 @@ void train_predictor(uint32_t pc, uint8_t outcome)
     case TOURNAMENT:
             return train_tournament(pc, outcome);
     case CUSTOM:
+            return train_perceptron(pc, outcome);
     default:
             break;
   }
