@@ -39,10 +39,15 @@ int verbose;
 //int gbht_entries = 1 << gbhtBits; // 2 ^{12}
 //int cbht_entries = 1 << cbhtBits; // 2 ^{12}
 
-int lht_entries = 1 << 10; // 2 ^{10}
-int lbht_entries = 1 << 10; // 2 ^{10}
-int gbht_entries = 1 << 12; // 2 ^{12}
-int cbht_entries = 1 << 12; // 2 ^{12}
+//int lht_entries = 1 << 10; // 2 ^{10}
+//int lbht_entries = 1 << 10; // 2 ^{10}
+//int gbht_entries = 1 << 12; // 2 ^{12}
+//int cbht_entries = 1 << 12; // 2 ^{12}
+
+int lht_entries = 1 << 16;
+int lbht_entries = 1 << 16;
+int gbht_entries = 1 << 16;
+int cbht_entries = 1 << 16;
 
 //------------------------------------//
 //      Predictor Data Structures     //
