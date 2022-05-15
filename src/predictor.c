@@ -47,10 +47,10 @@ int verbose;
 //int gbht_entries = 1 << 12; // 2 ^{12}
 //int cbht_entries = 1 << 12; // 2 ^{12}
 
-int lht_entries = 1 << 10;
+uint16_t lht_entries = 1 << 10;
 int lbht_entries = 1 << 10;
 int gbht_entries = 1 << 13;
-int cbht_entries = 1 << 11;
+int cbht_entries = 1 << 12;
 
 
 // perceptron
@@ -328,19 +328,19 @@ void init_tournament() {
     
     lbht = (uint8_t*)malloc(lbht_entries * sizeof(uint8_t));
     for (i = 0; i < lbht_entries; i++){
-        lbht[i] = WN;
+        lbht[i] = SN;
     }
     
     
     gbht = (uint8_t*)malloc(gbht_entries * sizeof(uint8_t));
     for (i = 0; i < gbht_entries; i++){
-        gbht[i] = WN;
+        gbht[i] = SN;
     }
     
     
     cbht = (uint8_t*)malloc(cbht_entries * sizeof(uint8_t));
     for (i = 0; i < cbht_entries; i++){
-        cbht[i] = WN;
+        cbht[i] = SN;
     }
     
     ghistory_tournament = 0;
