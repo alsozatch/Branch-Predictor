@@ -48,8 +48,8 @@ int verbose;
 //int cbht_entries = 1 << 12; // 2 ^{12}
 
 uint16_t lht_entries = 1 << 10;
-int lbht_entries = 1 << 11;
-int gbht_entries = 1 << 12;
+int lbht_entries = 1 << 10;
+int gbht_entries = 1 << 13;
 int cbht_entries = 1 << 12;
 
 
@@ -390,9 +390,9 @@ uint8_t tournament_predict(uint32_t pc) {
         case SN:
           return tournament_predict_local(pc);
         case WT:
-          return tournament_predict_local(pc);
+          return tournament_predict_global();
         case ST:
-          return tournament_predict_local(pc);
+          return tournament_predict_global();
         default:
           printf("Warning: Undefined state of entry in CHOICE BHT!\n");
           return tournament_predict_local(pc);
@@ -408,10 +408,12 @@ void train_tournament(uint32_t pc, uint8_t outcome) {
 
     // obtain local history prediction before updating it
     uint8_t local_prediction = tournament_predict_local(pc);
+    local_prediction = (local_prediction == outcome) ? 1 : 0;
     
     
     // obtain global history prediction before updating it
     uint8_t global_prediction = tournament_predict_global();
+    global_prediction = (global_prediction == outcome) ? 1 : 0;
     
     
     // update local history prediction
