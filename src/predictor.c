@@ -60,6 +60,17 @@ uint64_t FNV_offset_basis = 0xcbf29ce484222325;
 uint64_t FNV_prime = 0x100000001b3;
 
 
+// TAGE
+struct tage_entry {
+    uint8_t tag;
+    uint8_t ctr;
+    uint8_t u;
+};
+
+uint8_t *T0;
+struct tage_entry *T1, *T2, *T3, *T4;
+uint64_t ghistory_tage;
+
 //------------------------------------//
 //      Predictor Data Structures     //
 //------------------------------------//
@@ -94,7 +105,7 @@ void init_perceptron() {
     int i, j;
     for (i = 0; i < pc_entries; i++) {
         for (j = 0; j < weight_entries; j++) {
-            ptable[i][j] = 0;
+            ptable[i][j] = 1;
         }
     }
     
@@ -116,20 +127,24 @@ uint32_t fnvhash_pc(uint32_t pc) {
     return hash % pc_entries;
 }
 
+uint32_t hash_pc(uint32_t pc) {
+    return pc % pc_entries;
+}
+
 int perceptron_calculate_y(uint32_t pc) {
-    //uint32_t pc_lower_bits = pc & (pc_entries - 1);
-    uint32_t pc_index = fnvhash_pc(pc);
+    uint32_t pc_lower_bits = pc & (pc_entries - 1);
+    //uint32_t pc_index = hash_pc(pc);
     
     int y = 0;
-    y += ptable[pc_index][0];
+    y += ptable[pc_lower_bits][0];
     
     int i;
     for (i = 1; i < weight_entries; i++) {
-        if (ghistory_perceptron & (1 << (i-1)) == 0) {
-            y -= ptable[pc_index][i];
+        if ((ghistory_perceptron & (1 << (i-1))) == 0) {
+            y -= ptable[pc_lower_bits][i];
         }
         else {
-            y += ptable[pc_index][i];
+            y += ptable[pc_lower_bits][i];
         }
     }
     
@@ -142,25 +157,26 @@ uint8_t perceptron_predict(uint32_t pc) {
 }
 
 void train_perceptron(uint32_t pc, uint8_t outcome) {
-    //uint32_t pc_lower_bits = pc & (pc_entries - 1);
-    uint32_t pc_index = fnvhash_pc(pc);
+    uint32_t pc_lower_bits = pc & (pc_entries - 1);
+    //uint32_t pc_index = hash_pc(pc);
     int y = perceptron_calculate_y(pc);
     int8_t t = (outcome == TAKEN) ? 1 : -1;
     int8_t sign_y = (y >= 0) ? 1 : -1;
     
     int i;
     if ((sign_y != t) || (abs(y) <= theta)) {
-        ptable[pc_index][0] += t;
+        ptable[pc_lower_bits][0] += t;
         for (i = 1; i < weight_entries; i++) {
-            if (ghistory_perceptron & (1 << (i-1)) == 0) {
-                ptable[pc_index][i] -= t;
+            if ((ghistory_perceptron & (1 << (i-1))) == 0) {
+                ptable[pc_lower_bits][i] -= t;
             }
             else {
-                ptable[pc_index][i] += t;
+                ptable[pc_lower_bits][i] += t;
             }
         }
     }
     
+    ghistory_perceptron = ((ghistory_perceptron << 1) | outcome);
 }
 
 //tournament functions
@@ -356,7 +372,6 @@ void train_tournament(uint32_t pc, uint8_t outcome) {
     // update local and global history recordings
     lht[pc_lower_bits] = ((lht[pc_lower_bits] << 1) | outcome);
     ghistory_tournament = ((ghistory_tournament << 1) | outcome);
-    
 }
 
 void cleanup_tournament() {
