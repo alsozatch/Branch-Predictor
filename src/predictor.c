@@ -48,9 +48,9 @@ int verbose;
 //int cbht_entries = 1 << 12; // 2 ^{12}
 
 int lht_entries = 1 << 10;
-int lbht_entries = 1 << 13;
+int lbht_entries = 1 << 10;
 int gbht_entries = 1 << 13;
-int cbht_entries = 1 << 13;
+int cbht_entries = 1 << 12;
 
 
 // perceptron
@@ -604,7 +604,8 @@ void init_predictor()
             init_tournament();
             break;
     case CUSTOM:
-            init_pt();
+            //init_pt();
+            init_perceptron();
             break;
     default:
             break;
@@ -628,7 +629,8 @@ uint8_t make_prediction(uint32_t pc)
     case TOURNAMENT:
             return tournament_predict(pc);
     case CUSTOM:
-            return pt_predict(pc);
+            //return pt_predict(pc);
+            return perceptron_predict(pc);
     default:
             break;
   }
@@ -651,7 +653,8 @@ void train_predictor(uint32_t pc, uint8_t outcome)
     case TOURNAMENT:
             return train_tournament(pc, outcome);
     case CUSTOM:
-            return train_pt(pc, outcome);
+            //return train_pt(pc, outcome);
+            return train_perceptron(pc, outcome);
     default:
             break;
   }
