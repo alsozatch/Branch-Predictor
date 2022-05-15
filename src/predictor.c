@@ -49,7 +49,7 @@ int verbose;
 
 uint16_t lht_entries = 1 << 10;
 int lbht_entries = 1 << 10;
-int gbht_entries = 1 << 13;
+int gbht_entries = 1 << 12;
 int cbht_entries = 1 << 12;
 
 
