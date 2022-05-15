@@ -390,9 +390,9 @@ uint8_t tournament_predict(uint32_t pc) {
         case SN:
           return tournament_predict_local(pc);
         case WT:
-          return tournament_predict_global();
+          return tournament_predict_local(pc);
         case ST:
-          return tournament_predict_global();
+          return tournament_predict_local(pc);
         default:
           printf("Warning: Undefined state of entry in CHOICE BHT!\n");
           return tournament_predict_local(pc);
