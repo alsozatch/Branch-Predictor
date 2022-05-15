@@ -50,7 +50,7 @@ int verbose;
 int lht_entries = 1 << 10;
 int lbht_entries = 1 << 10;
 int gbht_entries = 1 << 13;
-int cbht_entries = 1 << 12;
+int cbht_entries = 1 << 11;
 
 
 // perceptron
@@ -407,45 +407,11 @@ void train_tournament(uint32_t pc, uint8_t outcome) {
     uint32_t choice_lower_bits = ghistory_tournament & (cbht_entries - 1);
 
     // obtain local history prediction before updating it
-    uint8_t local_prediction;
-    switch (lbht[lhistory_lower_bits]) {
-        case WN:
-            local_prediction = NOTTAKEN;
-            break;
-        case SN:
-            local_prediction = NOTTAKEN;
-            break;
-        case WT:
-            local_prediction = TAKEN;
-            break;
-        case ST:
-            local_prediction = TAKEN;
-            break;
-        default:
-            printf("Warning: Undefined state of entry in LBHT!\n");
-            local_prediction = NOTTAKEN;
-    }
+    uint8_t local_prediction = tournament_predict_local(pc);
     
     
     // obtain global history prediction before updating it
-    uint8_t global_prediction;
-    switch (gbht[ghistory_lower_bits]) {
-        case WN:
-            global_prediction = NOTTAKEN;
-            break;
-        case SN:
-            global_prediction = NOTTAKEN;
-            break;
-        case WT:
-            global_prediction = TAKEN;
-            break;
-        case ST:
-            global_prediction = TAKEN;
-            break;
-        default:
-            printf("Warning: Undefined state of entry in GBHT!\n");
-            global_prediction = NOTTAKEN;
-    }
+    uint8_t global_prediction = tournament_predict_global();
     
     
     // update local history prediction
@@ -485,7 +451,7 @@ void train_tournament(uint32_t pc, uint8_t outcome) {
     }
     
     // update choice
-    int8_t update_rule = (int8_t)((int16_t)global_prediction - (int16_t)local_prediction); // 1, 0, or -1
+    int16_t update_rule = ((int16_t)global_prediction - (int16_t)local_prediction); // 1, 0, or -1
     if (update_rule != 0) {
         
         switch (cbht[choice_lower_bits]) {
