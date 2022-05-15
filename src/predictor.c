@@ -54,8 +54,10 @@ int cbht_entries = 1 << 13;
 
 
 // perceptron
-int pc_entries = 127;
+int pc_entries = 1 << 7;
 uint16_t weight_entries = 29; // 1 bit reserved for bias, so it is 1 more than number of global history bits used
+uint64_t FNV_offset_basis = 0xcbf29ce484222325;
+uint64_t FNV_prime = 0x100000001b3;
 
 
 //------------------------------------//
@@ -77,7 +79,7 @@ uint8_t *cbht; // choice prediction BHT
 uint64_t ghistory_tournament; // global history
 
 // perceptron
-int8_t ptable[127][29]; // 1 bias + the rest ghistory bits for columns
+int8_t ptable[1 << 7][29]; // 1 bias + the rest ghistory bits for columns
 uint64_t ghistory_perceptron;
 int theta;
 
@@ -100,13 +102,23 @@ void init_perceptron() {
     ghistory_perceptron = 0;
 }
 
-uint32_t hash_pc(uint32_t pc) {
-    return pc % pc_entries;
+uint32_t fnvhash_pc(uint32_t pc) {
+    uint64_t hash = FNV_offset_basis;
+    uint8_t byte;
+    
+    int i;
+    for (i = 0; i < 4; i += 8) {
+        byte = (pc >> i) & 0xff;
+        hash *= FNV_prime;
+        hash ^= byte;
+    }
+    
+    return hash % pc_entries;
 }
 
 int perceptron_calculate_y(uint32_t pc) {
     //uint32_t pc_lower_bits = pc & (pc_entries - 1);
-    uint32_t pc_index = hash_pc(pc);
+    uint32_t pc_index = fnvhash_pc(pc);
     
     int y = 0;
     y += ptable[pc_index][0];
@@ -131,7 +143,7 @@ uint8_t perceptron_predict(uint32_t pc) {
 
 void train_perceptron(uint32_t pc, uint8_t outcome) {
     //uint32_t pc_lower_bits = pc & (pc_entries - 1);
-    uint32_t pc_index = hash_pc(pc);
+    uint32_t pc_index = fnvhash_pc(pc);
     int y = perceptron_calculate_y(pc);
     int8_t t = (outcome == TAKEN) ? 1 : -1;
     int8_t sign_y = (y >= 0) ? 1 : -1;
