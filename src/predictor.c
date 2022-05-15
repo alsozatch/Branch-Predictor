@@ -80,10 +80,180 @@ int8_t ptable[1 << 7][32]; // 1 bias + the rest ghistory bits for columns
 uint64_t ghistory_perceptron;
 int theta;
 
+// perceptron tournament
+int gbht_pt_entries = 1 << 13;
+int cbht_pt_entries = 1 << 11;
+
 
 //------------------------------------//
 //        Predictor Functions         //
 //------------------------------------//
+
+// perceptron vs gshare tournament functions
+void init_pt() {
+    
+    // PERCEPTRON
+    int i, j;
+    for (i = 0; i < pc_entries; i++) {
+        for (j = 0; j < weight_entries; j++) {
+            ptable[i][j] = -1;
+        }
+    }
+    
+    theta = (int)(1.93 * (weight_entries - 1) + 14);
+    
+    // GSHARE
+    gbht = (uint8_t*)malloc(gbht_pt_entries * sizeof(uint8_t));
+    for (i = 0; i < gbht_pt_entries; i++){
+        gbht[i] = WN;
+    }
+    
+    
+    // CHOOSER
+    cbht = (uint8_t*)malloc(cbht_pt_entries * sizeof(uint8_t));
+    for (i = 0; i < cbht_pt_entries; i++){
+        cbht[i] = WN;
+    }
+    
+    
+    ghistory = 0;
+}
+
+int pt_calculate_y(uint32_t pc) {
+    uint32_t pc_lower_bits = pc & (pc_entries - 1);
+    
+    int y = 0;
+    y += ptable[pc_lower_bits][0];
+    
+    int i;
+    for (i = 1; i < weight_entries; i++) {
+        if ((ghistory & (1 << (i-1))) == 0) {
+            y -= ptable[pc_lower_bits][i];
+        }
+        else {
+            y += ptable[pc_lower_bits][i];
+        }
+    }
+    
+    return y;
+}
+
+uint8_t pt_predict_perceptron(uint32_t pc) {
+    int y = pt_calculate_y(pc);
+    return (y >= 0) ? TAKEN : NOTTAKEN;
+}
+
+uint8_t pt_predict_gshare(uint32_t pc) {
+    uint32_t ghistory_lower_bits = ghistory & (gbht_pt_entries - 1);
+    uint32_t pc_lower_bits = pc & (gbht_pt_entries - 1);
+    uint32_t index = ghistory_lower_bits ^ pc_lower_bits;
+    switch (gbht[index]) {
+        case WN:
+            return NOTTAKEN;
+        case SN:
+            return NOTTAKEN;
+        case WT:
+            return TAKEN;
+        case ST:
+            return TAKEN;
+        default:
+            printf("Warning: Undefined state of entry in GBHT!\n");
+            return NOTTAKEN;
+    }
+}
+
+uint8_t pt_predict(uint32_t pc) {
+    uint32_t choice_lower_bits = ghistory & (cbht_pt_entries - 1);
+    switch (cbht[choice_lower_bits]) {
+        case WN:
+            return pt_predict_gshare(pc);
+        case SN:
+            return pt_predict_gshare(pc);
+        case WT:
+            return pt_predict_perceptron(pc);
+        case ST:
+            return pt_predict_perceptron(pc);
+        default:
+            printf("Warning: Undefined state of entry in CHOICE BHT!\n");
+            return pt_predict_gshare(pc);
+    }
+}
+
+void train_pt(uint32_t pc, uint8_t outcome) {
+    uint32_t pc_lower_bits = pc & (pc_entries - 1);
+    uint32_t ghistory_lower_bits = ghistory & (gbht_pt_entries - 1);
+    uint32_t choice_lower_bits = ghistory & (cbht_pt_entries - 1);
+    uint32_t gshare_index = ghistory_lower_bits ^ (pc & (gbht_pt_entries - 1));
+    
+    // get perceptron prediction before updating it
+    int y = pt_calculate_y(pc);
+    uint8_t perceptron_prediction = (y >= 0) ? TAKEN : NOTTAKEN;;
+    
+    // get gshare prediction before updating it
+    uint8_t gshare_prediction = pt_predict_gshare(pc);
+    
+    // update choice
+    int8_t update_rule = (int8_t)((int16_t)perceptron_prediction - (int16_t)gshare_prediction); // 1, 0, or -1
+    if (update_rule != 0) {
+        
+        switch (cbht[choice_lower_bits]) {
+            case WN:
+                cbht[choice_lower_bits] = (update_rule == 1) ? WT : SN;
+                break;
+            case SN:
+                cbht[choice_lower_bits] = (update_rule == 1) ? WN : SN;
+                break;
+            case WT:
+                cbht[choice_lower_bits] = (update_rule == 1) ? ST : WN;
+                break;
+            case ST:
+                cbht[choice_lower_bits] = (update_rule == 1) ? ST : WT;
+                break;
+            default:
+                printf("Warning: Undefined state of entry in CBHT");
+        }
+
+    }
+    
+    // train perceptron
+    int8_t t = (outcome == TAKEN) ? 1 : -1;
+    int8_t sign_y = (y >= 0) ? 1 : -1;
+    
+    int i;
+    if ((sign_y != t) || (abs(y) <= theta)) {
+        ptable[pc_lower_bits][0] += t;
+        for (i = 1; i < weight_entries; i++) {
+            if ((ghistory & (1 << (i-1))) == 0) {
+                ptable[pc_lower_bits][i] -= t;
+            }
+            else {
+                ptable[pc_lower_bits][i] += t;
+            }
+        }
+    }
+    
+    // train gshare
+    switch (gbht[gshare_index]) {
+        case WN:
+            gbht[gshare_index] = (outcome == TAKEN) ? WT : SN;
+            break;
+        case SN:
+            gbht[gshare_index] = (outcome == TAKEN) ? WN : SN;
+            break;
+        case WT:
+            gbht[gshare_index] = (outcome == TAKEN) ? ST : WN;
+            break;
+        case ST:
+            gbht[gshare_index] = (outcome == TAKEN) ? ST : WT;
+            break;
+        default:
+            printf("Warning: Undefined state of entry in GBHT");
+    }
+    
+    ghistory = ((ghistory << 1) | outcome);
+}
+
+
 
 // perceptron functions
 void init_perceptron() {
@@ -95,8 +265,11 @@ void init_perceptron() {
     }
     
     theta = (int)(1.93 * (weight_entries - 1) + 14);
-    ghistory_perceptron = 0;
+    ghistory = 0;
 }
+
+
+
 
 int perceptron_calculate_y(uint32_t pc) {
     uint32_t pc_lower_bits = pc & (pc_entries - 1);
@@ -431,7 +604,7 @@ void init_predictor()
             init_tournament();
             break;
     case CUSTOM:
-            init_perceptron();
+            init_pt();
             break;
     default:
             break;
@@ -455,7 +628,7 @@ uint8_t make_prediction(uint32_t pc)
     case TOURNAMENT:
             return tournament_predict(pc);
     case CUSTOM:
-            return perceptron_predict(pc);
+            return pt_predict(pc);
     default:
             break;
   }
@@ -478,7 +651,7 @@ void train_predictor(uint32_t pc, uint8_t outcome)
     case TOURNAMENT:
             return train_tournament(pc, outcome);
     case CUSTOM:
-            return train_perceptron(pc, outcome);
+            return train_pt(pc, outcome);
     default:
             break;
   }
