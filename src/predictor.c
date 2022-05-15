@@ -47,10 +47,10 @@ int verbose;
 //int gbht_entries = 1 << 12; // 2 ^{12}
 //int cbht_entries = 1 << 12; // 2 ^{12}
 
-uint16_t lht_entries = 1 << 8;
-int lbht_entries = 1 << 12;
-int gbht_entries = 1 << 13;
-int cbht_entries = 1 << 11;
+uint16_t lht_entries = 1 << 10;
+int lbht_entries = 1 << 10;
+int gbht_entries = 1 << 12;
+int cbht_entries = 1 << 12;
 
 
 // perceptron
