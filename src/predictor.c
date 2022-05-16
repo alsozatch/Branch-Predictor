@@ -100,7 +100,7 @@ void init_pt() {
         }
     }
     
-    theta = (int)(1.93 * (weight_entries - 1) + weight_entries / 2);
+    theta = (int)(1.93 * (weight_entries - 1) + 14);
     
     // GSHARE
     gbht = (uint8_t*)malloc(gbht_pt_entries * sizeof(uint8_t));
@@ -300,7 +300,7 @@ void init_perceptron() {
         }
     }
     
-    theta = (int)(1.93 * (weight_entries - 1) + weight_entries / 2);
+    theta = (int)(1.93 * (weight_entries - 1) + 14);
     ghistory = 0;
 }
 
