@@ -55,7 +55,7 @@ int cbht_entries = 1 << 12;
 
 // perceptron
 int pc_entries = 1 << 7;
-uint16_t weight_entries = 16; // 1 bit reserved for bias, so it is 1 more than number of global history bits used
+uint16_t weight_entries = 24; // 1 bit reserved for bias, so it is 1 more than number of global history bits used
 
 //------------------------------------//
 //      Predictor Data Structures     //
@@ -76,13 +76,13 @@ uint8_t *cbht; // choice prediction BHT
 uint64_t ghistory_tournament; // global history
 
 // perceptron
-int8_t ptable[1 << 7][32]; // 1 bias + the rest ghistory bits for columns
+int8_t ptable[1 << 7][30]; // 1 bias + the rest ghistory bits for columns
 uint64_t ghistory_perceptron;
 int theta;
 
 // perceptron tournament
-int gbht_pt_entries = 1 << 12;
-int cbht_pt_entries = 1 << 12;
+int gbht_pt_entries = 1 << 11;
+int cbht_pt_entries = 1 << 11;
 
 
 //------------------------------------//
