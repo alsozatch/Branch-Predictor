@@ -301,7 +301,7 @@ void init_perceptron() {
     }
     
     theta = (int)(1.93 * (weight_entries - 1) + 14);
-    ghistory = 0;
+    ghistory_perceptron = 0;
 }
 
 
