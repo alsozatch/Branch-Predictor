@@ -76,7 +76,7 @@ uint8_t *cbht; // choice prediction BHT
 uint64_t ghistory_tournament; // global history
 
 // perceptron
-int8_t ptable[1 << 7][30]; // 1 bias + the rest ghistory bits for columns
+int8_t ptable[1 << 7][24]; // 1 bias + the rest ghistory bits for columns
 uint64_t ghistory_perceptron;
 int theta;
 
@@ -179,6 +179,40 @@ uint8_t pt_predict(uint32_t pc) {
     }
 }
 
+// t is 1 or -1
+int8_t add_t_without_overflow(int8_t weight, int8_t t) {
+    if (t == 1) {
+        if (weight != 127) {
+            return weight + 1;
+        }
+    }
+    
+    else if (t == -1) {
+        if (weight != -128) {
+            return weight - 1;
+        }
+    }
+    
+    return weight;
+}
+
+// t is 1 or -1
+int8_t sub_t_without_overflow(int8_t weight, int8_t t) {
+    if (t == 1) {
+        if (weight != -128) {
+            return weight - 1;
+        }
+    }
+    
+    else if (t == -1) {
+        if (weight != 127) {
+            return weight + 1;
+        }
+    }
+    
+    return weight;
+}
+
 void train_pt(uint32_t pc, uint8_t outcome) {
     uint32_t pc_lower_bits = pc & (pc_entries - 1);
     uint32_t ghistory_lower_bits = ghistory & (gbht_pt_entries - 1);
@@ -223,13 +257,13 @@ void train_pt(uint32_t pc, uint8_t outcome) {
     
     int i;
     if ((sign_y != t) || (abs(y) <= theta)) {
-        ptable[pc_lower_bits][0] += t;
+        ptable[pc_lower_bits][0] = add_t_without_overflow(ptable[pc_lower_bits][0], t);
         for (i = 1; i < weight_entries; i++) {
             if ((ghistory & (1 << (i-1))) == 0) {
-                ptable[pc_lower_bits][i] -= t;
+                ptable[pc_lower_bits][i] = sub_t_without_overflow(ptable[pc_lower_bits][i], t);
             }
             else {
-                ptable[pc_lower_bits][i] += t;
+                ptable[pc_lower_bits][i] = add_t_without_overflow(ptable[pc_lower_bits][i], t);
             }
         }
     }
