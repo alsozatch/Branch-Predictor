@@ -55,7 +55,7 @@ int cbht_entries = 1 << 12;
 
 // perceptron
 int pc_entries = 1 << 7;
-uint16_t weight_entries = 32; // 1 bit reserved for bias, so it is 1 more than number of global history bits used
+uint16_t weight_entries = 16; // 1 bit reserved for bias, so it is 1 more than number of global history bits used
 
 //------------------------------------//
 //      Predictor Data Structures     //
@@ -81,8 +81,8 @@ uint64_t ghistory_perceptron;
 int theta;
 
 // perceptron tournament
-int gbht_pt_entries = 1 << 13;
-int cbht_pt_entries = 1 << 11;
+int gbht_pt_entries = 1 << 12;
+int cbht_pt_entries = 1 << 12;
 
 
 //------------------------------------//
@@ -187,13 +187,15 @@ void train_pt(uint32_t pc, uint8_t outcome) {
     
     // get perceptron prediction before updating it
     int y = pt_calculate_y(pc);
-    uint8_t perceptron_prediction = (y >= 0) ? TAKEN : NOTTAKEN;;
+    uint8_t perceptron_prediction = (y >= 0) ? TAKEN : NOTTAKEN;
+    perceptron_prediction = (perceptron_prediction == outcome) ? 1 : 0;
     
     // get gshare prediction before updating it
     uint8_t gshare_prediction = pt_predict_gshare(pc);
+    gshare_prediction = (gshare_prediction == outcome) ? 1 : 0;
     
     // update choice
-    int8_t update_rule = (int8_t)((int16_t)perceptron_prediction - (int16_t)gshare_prediction); // 1, 0, or -1
+    int16_t update_rule = (int16_t)perceptron_prediction - (int16_t)gshare_prediction; // 1, 0, or -1
     if (update_rule != 0) {
         
         switch (cbht[choice_lower_bits]) {
@@ -572,8 +574,8 @@ void init_predictor()
             init_tournament();
             break;
     case CUSTOM:
-            //init_pt();
-            init_perceptron();
+            init_pt();
+            //init_perceptron();
             break;
     default:
             break;
@@ -597,8 +599,8 @@ uint8_t make_prediction(uint32_t pc)
     case TOURNAMENT:
             return tournament_predict(pc);
     case CUSTOM:
-            //return pt_predict(pc);
-            return perceptron_predict(pc);
+            return pt_predict(pc);
+            //return perceptron_predict(pc);
     default:
             break;
   }
@@ -621,8 +623,8 @@ void train_predictor(uint32_t pc, uint8_t outcome)
     case TOURNAMENT:
             return train_tournament(pc, outcome);
     case CUSTOM:
-            //return train_pt(pc, outcome);
-            return train_perceptron(pc, outcome);
+            return train_pt(pc, outcome);
+            //return train_perceptron(pc, outcome);
     default:
             break;
   }
